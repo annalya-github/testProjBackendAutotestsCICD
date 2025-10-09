@@ -2,9 +2,9 @@ name: CI (build, test, docker)
 
 on:
   push:
-    branches: [ "main" ]        # запускается на push/merge в main
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]        # и на PR в main (проверка до merge)
+    branches: [ "main" ]
 
 jobs:
   build-test-and-docker:
@@ -23,28 +23,29 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # 3) Сборка и тесты (юнит/интеграционные)
+      # 3) Сборка и тесты
       - name: Build & Test (Maven)
         run: mvn -B -DskipTests=false verify
 
-      # 4) Логин в Docker (локально в раннере — push не делаем)
+      # 4) Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 5) Собрать образ из Dockerfile
+      # 5) Сборка образа и ЗАГРУЗКА в локальный докер раннера (ключ load: true!)
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: false                     # образ не пушим, только строим
-          tags: app:test-ci               # локальный тег для раннера
+          push: false                  # не пушим в реестр
+          load: true                   # <-- ВАЖНО: загрузить образ в локальный Docker
+          tags: app:test-ci            # локальный тег
 
-      # 6) Поднять контейнер и подождать, пока поднимется /actuator/health
+      # 6) Поднять контейнер и дождаться health
       - name: Run container
         run: |
           docker run -d --name app -p 8080:8080 app:test-ci
           echo "Waiting for app to be UP..."
-          for i in {1..30}; do
+          for i in {1..40}; do
             if curl -fsS http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
               echo "App is UP"; exit 0
             fi
@@ -52,34 +53,26 @@ jobs:
           done
           echo "App did not become healthy in time"; docker logs app; exit 1
 
-      # 7) Простые smoke-тесты API (создать → получить → удалить)
+      # 7) Smoke-тесты API (POST -> GET -> DELETE)
       - name: API smoke tests
         run: |
           set -e
-          # создать
           CREATE_RESP=$(curl -s -X POST http://localhost:8080/cards \
             -H "Content-Type: application/json" \
             -d '{"title":"From CI","description":"Smoke","status":"OPEN"}')
           echo "Create response: $CREATE_RESP"
           ID=$(echo "$CREATE_RESP" | sed -E 's/.*"id":\s*([0-9]+).*/\1/')
           echo "Created ID: $ID"
-
-          # проверить, что получили по id
           curl -s http://localhost:8080/cards/$ID | grep -q '"title":"From CI"'
-
-          # удалить
           curl -s -X DELETE http://localhost:8080/cards/$ID
-
-          # убедиться, что удалено (ожидаем 404/пусто при GET /ui не проверяем)
-          # для простоты посмотрим, что id больше не встречается в списке
           ! curl -s http://localhost:8080/cards | grep -q "\"id\":$ID"
 
-      # 8) На случай падения — показать логи приложения
+      # 8) Показать логи при падении
       - name: Show container logs on failure
         if: failure()
         run: docker logs app || true
 
-      # 9) Остановить контейнер (чистим за собой)
+      # 9) Уборка
       - name: Stop container
         if: always()
         run: docker rm -f app || true
