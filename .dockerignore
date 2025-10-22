@@ -1,7 +1,4 @@
-target/
-.idea/
-*.iml
-.git/
-*.log
-Dockerfile
-docker-compose.yml
+.git
+.idea
+**/target
+**/.DS_Store

@@ -3,125 +3,62 @@
 		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-	<!--
-      Это основной файл конфигурации Maven (Project Object Model),
-      где описано, как собирать и запускать проект.
-    -->
+	<!-- ==========================================================
+	     📘 Корневой pom.xml
+	     Это главный конфигурационный файл Maven.
+	     Он управляет всеми модулями проекта (модульная структура).
+	     ========================================================== -->
+
 	<modelVersion>4.0.0</modelVersion>
 
-	<!-- Родительский проект Spring Boot -->
+	<!-- ==========================================================
+	     🧩 Родитель — Spring Boot Starter Parent
+	     Подтягивает все стандартные версии зависимостей и плагинов,
+	     включая компилятор, тесты и плагины сборки.
+	     Благодаря этому не нужно указывать версии вручную в каждом модуле.
+	     ========================================================== -->
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.6</version>
-		<relativePath/> <!-- ищет родителя в центральном репозитории -->
+		<version>3.3.6</version>
+		<relativePath/> <!-- relativePath пустой, потому что это не локальный pom -->
 	</parent>
 
-	<!-- Основные данные о проекте -->
-	<groupId>com.ann</groupId>          <!-- "фамилия" проекта -->
-	<artifactId>testProj</artifactId>   <!-- имя сборки (название jar-файла) -->
-	<version>0.0.1-SNAPSHOT</version>   <!-- версия -->
-	<name>testProj</name>
-	<description>Demo project for Spring Boot</description>
+	<!-- ==========================================================
+	     🏷️ Общие данные о проекте
+	     Эти поля определяют координаты артефакта (GAV):
+	     groupId + artifactId + version = уникальный ID проекта.
+	     ========================================================== -->
+	<groupId>com.ann</groupId>
+	<artifactId>testProj</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
 
-	<!-- Версия Java -->
+	<!-- packaging=pom означает, что этот pom — "агрегатор" модулей,
+	     а не самостоятельное приложение. -->
+	<packaging>pom</packaging>
+
+	<!-- ==========================================================
+	     🧱 Модули проекта
+	     Здесь перечислены все подпроекты (модули), которые Maven
+	     соберёт вместе. Каждый модуль имеет свой pom.xml.
+	     ========================================================== -->
+	<modules>
+		<module>backend</module> <!-- Основной модуль приложения (Spring Boot backend) -->
+
+		<!-- Можно добавить другие, например:
+		     <module>frontend</module>
+		     <module>api-autotests</module>
+		     <module>shared</module>
+		-->
+	</modules>
+
+	<!-- ==========================================================
+	     ⚙️ Общие свойства проекта
+	     Здесь задаются глобальные параметры — например, версия Java,
+	     которую будут использовать все модули.
+	     ========================================================== -->
 	<properties>
-		<java.version>21</java.version> <!-- проект собирается под Java 21 -->
+		<java.version>21</java.version> <!-- проект компилируется и запускается на Java 21 -->
 	</properties>
 
-	<!--
-      Список зависимостей (библиотек),
-      которые Maven автоматически скачает и подключит.
-    -->
-	<dependencies>
-
-		<!-- 1️⃣ Spring Boot Actuator
-             Даёт технические эндпоинты мониторинга:
-             /actuator/health, /actuator/info и др. -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-actuator</artifactId>
-		</dependency>
-
-		<!-- 2️⃣ Spring Data JPA
-             Позволяет работать с базой данных через репозитории
-             и аннотации @Entity, @Id, @GeneratedValue.
-             Внутри использует Hibernate. -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-
-		<!-- 3️⃣ Spring Web
-             Позволяет создавать REST API и HTTP эндпоинты.
-             Включает Spring MVC, Jackson (JSON) и встроенный сервер Tomcat. -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-
-		<!-- 4️⃣ H2 Database
-             Лёгкая встроенная база данных в памяти.
-             Нужна для разработки и тестов без установки PostgreSQL/MySQL.
-             Работает только во время запуска приложения. -->
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-
-		<!-- 5️⃣ Spring Boot Test
-             Подключает инструменты для тестирования:
-             JUnit 5, AssertJ, Mockito, Spring Test и т.д.
-             Используется только при запуске тестов. -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- 6️⃣ Lombok
-             Генерирует автоматически геттеры, сеттеры, toString() и т.д.
-             Помогает писать меньше кода (аннотации @Data, @Getter, @Setter).
-             Нужно включить "annotation processing" в настройках IntelliJ. -->
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>
-
-		<!-- 7️⃣ springdoc-openapi — автоматическая документация API (Swagger UI).
-                   После запуска откроется: http://localhost:8080/swagger-ui.html
-                   Удобно для ручного смоука и как “контракт” для фронта. -->
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.6.0</version>
-		</dependency>
-
-		<!-- 8️⃣ Thymeleaf — серверный рендер HTML-шаблонов (наш простой фронт).
-           Ищет шаблоны в src/main/resources/templates/*.html -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
-
-		<!-- 9️⃣  --> <!-- 0️⃣  -->
-	</dependencies>
-
-	<!--
-      Настройка сборки проекта.
-      Плагин Spring Boot делает так, чтобы можно было
-      собрать единый исполняемый JAR-файл (fat jar)
-      и запускать приложение командой:
-      java -jar testProj-0.0.1-SNAPSHOT.jar
-    -->
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
 </project>

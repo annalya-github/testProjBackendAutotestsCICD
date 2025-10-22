@@ -1,4 +1,4 @@
-name: CI (build, test, docker)
+name: CI (backend + api tests)
 
 on:
   push:
@@ -7,72 +7,72 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-test-and-docker:
+  build-run-test:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Чекаут кода
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2) Java 21 + кэш Maven
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      # 3) Сборка и тесты
-      - name: Build & Test (Maven)
-        run: mvn -B -DskipTests=false verify
-
-      # 4) Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 5) Сборка образа и ЗАГРУЗКА в локальный докер раннера (ключ load: true!)
-      - name: Build Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false                  # не пушим в реестр
-          load: true                   # <-- ВАЖНО: загрузить образ в локальный Docker
-          tags: app:test-ci            # локальный тег
+      # собираем оба образа
+      - name: Build images
+        run: docker compose -f docker-compose.ci.yml build
 
-      # 6) Поднять контейнер и дождаться health
-      - name: Run container
-        run: |
-          docker run -d --name app -p 8080:8080 app:test-ci
-          echo "Waiting for app to be UP..."
-          for i in {1..40}; do
-            if curl -fsS http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
-              echo "App is UP"; exit 0
-            fi
-            sleep 2
-          done
-          echo "App did not become healthy in time"; docker logs app; exit 1
-
-      # 7) Smoke-тесты API (POST -> GET -> DELETE)
-      - name: API smoke tests
+      # поднимаем только backend и ждём готовность (дополнительно к healthcheck)
+      - name: Up backend and wait for health
         run: |
           set -e
-          CREATE_RESP=$(curl -s -X POST http://localhost:8080/cards \
-            -H "Content-Type: application/json" \
-            -d '{"title":"From CI","description":"Smoke","status":"OPEN"}')
-          echo "Create response: $CREATE_RESP"
-          ID=$(echo "$CREATE_RESP" | sed -E 's/.*"id":\s*([0-9]+).*/\1/')
-          echo "Created ID: $ID"
-          curl -s http://localhost:8080/cards/$ID | grep -q '"title":"From CI"'
-          curl -s -X DELETE http://localhost:8080/cards/$ID
-          ! curl -s http://localhost:8080/cards | grep -q "\"id\":$ID"
+          docker compose -f docker-compose.ci.yml up -d backend
+          echo "Waiting for backend to be UP..."
+          for i in {1..40}; do
+            if curl -fsS http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
+              echo "Backend is UP"; break
+            fi
+            sleep 2
+            if [ $i -eq 40 ]; then echo "Backend did not become healthy"; docker logs $(docker compose -f docker-compose.ci.yml ps -q backend); exit 1; fi
+          done
 
-      # 8) Показать логи при падении
-      - name: Show container logs on failure
-        if: failure()
-        run: docker logs app || true
+      # запускаем тестовый контейнер (НЕ удаляем сразу, чтобы вытащить отчёты)
+      - name: Run API tests container
+        id: run_tests
+        run: |
+          set -e
+          # запускаем НЕ rm, чтобы потом docker cp
+          docker compose -f docker-compose.ci.yml run --name api-tests-run api-tests || echo "tests_failed" > .tests_failed
 
-      # 9) Уборка
-      - name: Stop container
+      # собираем surefire-reports из контейнера
+      - name: Collect test reports
         if: always()
-        run: docker rm -f app || true
+        run: |
+          mkdir -p reports
+          docker cp api-tests-run:/reports ./reports || true
+
+      - name: Upload test reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: reports
+
+      # Показываем логи backend при падении
+      - name: Show backend logs on failure
+        if: failure()
+        run: docker logs $(docker compose -f docker-compose.ci.yml ps -q backend) || true
+
+      # Чистим всё
+      - name: Down compose and remove test container
+        if: always()
+        run: |
+          docker rm -f api-tests-run || true
+          docker compose -f docker-compose.ci.yml down -v
+
+      # Если были провалы в тестах — фейлим джобу
+      - name: Fail if tests failed
+        if: always()
+        run: |
+          if [ -f .tests_failed ]; then
+            echo "Some API tests failed"; exit 1
+          fi
