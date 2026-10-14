@@ -1,95 +1,96 @@
-# 🧩 TestProj - Spring Boot CRUD + API автотесты + Docker + CI/CD
+# 🧩 TestProj — Spring Boot CRUD + API Test Automation + Docker + CI/CD
 
-👩‍💻 **Автор:** Анна Ляшутина - QA Automation Engineer
+👩‍💻 Author: Anna Lyashutina — QA Automation Engineer
 
-Привет! Я Анна, инженер по автоматизации тестирования, увлечённая созданием надёжных и прозрачных QA-решений.  
-Этот проект - мой **pet-проект**, демонстрирующий полный цикл тестирования серверного приложения:  
-от **разработки backend-сервиса на Spring Boot** до **автоматизации API-тестов и CI/CD-пайплайна** на GitHub Actions.
-
----
-
-## 🚀 О проекте
-
-**TestProj** - это учебный проект, который объединяет:
-- **Бэкенд (Spring Boot)** с REST API и минимальным UI на Thymeleaf;
-- **API автотесты** на RestAssured;
-- **Docker-окружение** для изолированного запуска;
-- **CI/CD** на GitHub Actions, где при каждом деплое автоматически собирается образ, поднимается контейнер и выполняются smoke-тесты.
+Hi! I'm Anna, a QA Automation Engineer passionate about building reliable and transparent QA solutions.
+This personal project demonstrates the complete testing lifecycle of a backend application: from developing a Spring Boot service to automating API tests and setting up a CI/CD pipeline with GitHub Actions.
 
 ---
 
-## 🧱 Технологический стек
+## 🚀 About the Project
 
-| Категория | Используемые технологии |
-|------------|--------------------------|
-| Язык | Java 21 |
+TestProj is a learning project that brings together:
+
+- A Spring Boot backend with a REST API and a minimal Thymeleaf UI;
+- Automated API tests using RestAssured;
+- A Docker environment for isolated execution;
+- CI/CD with GitHub Actions, where each deployment automatically builds an image, starts a container, and runs smoke tests.
+
+---
+
+## 🧱 Technology Stack
+
+| Category | Technologies |
+| --- | --- |
+| Language | Java 21 |
 | Framework | Spring Boot 3 (Web, Data JPA, Actuator) |
-| База данных | H2 (in-memory) |
+| Database | H2 (in-memory) |
 | UI | Thymeleaf + Bootstrap 5 |
-| Автотесты | RestAssured + JUnit 5 |
-| Сборка | Maven |
-| Контейнеризация | Docker (multi-stage build) |
+| Test automation | RestAssured + JUnit 5 |
+| Build tool | Maven |
+| Containerization | Docker (multi-stage build) |
 | CI/CD | GitHub Actions |
 
 ---
 
-## 📊 Функциональность приложения
+## 📊 Application Features
 
-Приложение управляет карточками (**Card**) со следующими полями:
-- `id` - уникальный идентификатор
-- `title` - заголовок
-- `description` - описание
-- `status` - статус (`OPEN`, `IN_PROGRESS`, `DONE`)
+The application manages cards (`Card`) with the following fields:
 
-### Интерфейсы:
-- **REST API:** [`http://localhost:8080/cards`](http://localhost:8080/cards) - CRUD-операции (GET, POST, PUT, DELETE)
-- **Web UI:** [`http://localhost:8080/ui/cards`](http://localhost:8080/ui/cards) - таблица карточек с кнопками `Add` и `View`
+- `id` — unique identifier
+- `title` — title
+- `description` — description
+- `status` — status (`OPEN`, `IN_PROGRESS`, `DONE`)
+
+### Interfaces
+
+- REST API: `http://localhost:8080/cards` — CRUD operations (GET, POST, PUT, DELETE)
+- Web UI: `http://localhost:8080/ui/cards` — a card table with `Add` and `View` buttons
 
 ---
 
-## ⚙️ Как запустить локально
+## ⚙️ Running Locally
 
-### 🧱 Вариант 1 - без Docker
+### 🧱 Option 1 — Without Docker
 
 ```bash
-# Сборка проекта
+# Build the project
 mvn clean package
 
-# Запуск приложения
+# Start the application
 java -jar backend/target/backend-0.0.1-SNAPSHOT.jar
 ```
 
-### 🐳 Вариант 2 - через Docker
+### 🐳 Option 2 — With Docker
 
 ```bash
-# Сборка образа
+# Build the image
 docker build -t cards-backend:local ./backend
 
-# Запуск контейнера
+# Start the container
 docker run -p 8080:8080 cards-backend:local
 ```
-После запуска приложение будет доступно по адресу:  
-👉 [http://localhost:8080/ui/cards](http://localhost:8080/ui/cards)
+
+Once started, the application is available at:
+👉 http://localhost:8080/ui/cards
 
 ---
 
-## 🧪 API автотесты (RestAssured)
+## 🧪 Automated API Tests (RestAssured)
 
-Отдельный модуль **`api-autotests`** содержит набор тестов для проверки корректности REST API.
+The separate `api-autotests` module contains tests that verify REST API behavior.
 
-### Проверяются сценарии
+### Test Scenarios
 
-| Тип запроса | Проверка |
-|--------------|-----------|
-| **GET /cards** | Получение списка карточек |
-| **POST /cards** | Создание новой карточки |
-| **PUT /cards/{id}** | Обновление карточки |
-| **DELETE /cards/{id}** | Удаление карточки |
-| **/actuator/health** | Проверка доступности сервиса |
+| Request | Verification |
+| --- | --- |
+| GET /cards | Retrieve the list of cards |
+| POST /cards | Create a new card |
+| PUT /cards/{id} | Update a card |
+| DELETE /cards/{id} | Delete a card |
+| /actuator/health | Check service availability |
 
----
-
-### 🔧 Запуск тестов
+### 🔧 Running the Tests
 
 ```bash
 cd api-autotests
@@ -98,46 +99,46 @@ mvn test -DbaseUrl=http://localhost:8080
 
 ---
 
-## 🔄 CI/CD процесс
+## 🔄 CI/CD Workflow
 
-GitHub Actions автоматически выполняет пайплайн при каждом пуше в `main`:
+GitHub Actions automatically runs the pipeline on every push to `main`:
 
-1. 🧱 **Сборка Docker-образа backend**
-2. 🚀 **Запуск контейнера с backend**
-3. 🧪 **Запуск API-тестов (RestAssured)**
-4. 📊 **Сохранение отчётов Surefire / Allure**
-5. 🧹 **Остановка контейнеров и очистка**
-
----
-
-## 🌟 Почему этот проект важен
-
-✅ Показывает полный цикл QA-работы - от написания backend-логики до автотестов и CI/CD  
-✅ Использует реальные DevOps-подходы (Docker + GitHub Actions)  
-✅ Демонстрирует умение интегрировать автотесты в пайплайн разработки  
-✅ Минималистичный, но расширяемый каркас - можно адаптировать под любой pet-проект или демо
+1. 🧱 Build the backend Docker image
+2. 🚀 Start the backend container
+3. 🧪 Run API tests (RestAssured)
+4. 📊 Save Surefire / Allure reports
+5. 🧹 Stop containers and clean up
 
 ---
 
-## 📈 План развития проекта
+## 🌟 Why This Project Matters
 
-| Этап | Статус |
-|------|--------|
-| Базовый CRUD-backend на Spring Boot | ✅ Завершено |
-| REST API интеграция | ✅ Завершено |
-| Dockerfile + локальный запуск | ✅ Завершено |
-| RestAssured автотесты | 🚧 В процессе |
-| CI/CD пайплайн на GitHub Actions | ✅ Завершено |
-| Отчёты Allure | 🕗 В планах |
-| UI-тесты с Playwright / Selenium | 🕗 В планах |
+- ✅ Demonstrates the complete QA workflow — from backend development to automated tests and CI/CD
+- ✅ Applies practical DevOps techniques (Docker + GitHub Actions)
+- ✅ Shows how to integrate automated tests into a development pipeline
+- ✅ Provides a minimal, extensible foundation that can be adapted for other personal projects or demos
 
 ---
 
-## 💬 Контакты
+## 📈 Project Roadmap
 
-📩 **Email:** [annlyashutina@gmail.com](mailto:annlyashutina@gmail.com)  
-🔗 **LinkedIn:** [linkedin.com/in/anna-lyashutina](https://www.linkedin.com/in/anna-lyashutina)
+| Milestone | Status |
+| --- | --- |
+| Basic Spring Boot CRUD backend | ✅ Completed |
+| REST API integration | ✅ Completed |
+| Dockerfile and local execution | ✅ Completed |
+| Automated tests with RestAssured | 🚧 In progress |
+| GitHub Actions CI/CD pipeline | ✅ Completed |
+| Allure reports | 🕗 Planned |
+| UI tests with Playwright / Selenium | 🕗 Planned |
 
 ---
 
-✨ *Этот README будет обновляться по мере развития проекта. Следите за обновлениями!*
+## 💬 Contact
+
+📩 Email: annlyashutina@gmail.com  
+🔗 LinkedIn: [linkedin.com/in/anna-lyashutina](https://www.linkedin.com/in/anna-lyashutina)
+
+---
+
+✨ This README will be updated as the project evolves. Stay tuned!
